@@ -1,0 +1,8 @@
+SerpentCODGameAgentPlugin:
+  frame_handler: PLAY
+SerpentCODGamePlugin:
+  fps: 100
+SerpentFPSGameAgentPlugin:
+  frame_handler: PLAY
+SerpentTestingGamePlugin:
+  fps: 2
