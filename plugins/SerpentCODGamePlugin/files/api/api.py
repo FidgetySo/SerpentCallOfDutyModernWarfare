@@ -86,7 +86,7 @@ class CODAPI(GameAPI):
         return any(i.isdigit() for i in s)
     def get_xp(self, image_xp):
         image_xp = np.array(image_xp)
-        image = image_xp[980:908+215 , 407:407+323, :]
+        image=image_xp[ 407:407 + 215 , 980:980 + 323 , : ]
         image=cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
         yellow_min=np.array([255,194,21] , np.uint8)
         yellow_max=np.array([255,194,21] , np.uint8)

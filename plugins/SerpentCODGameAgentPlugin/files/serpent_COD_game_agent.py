@@ -5,7 +5,7 @@ from serpent.enums import InputControlTypes
 from serpent.frame_grabber import FrameGrabber
 
 from serpent.machine_learning.reinforcement_learning.agents.ppo_agent import PPOAgent
-
+from serpent.machine_learning.reinforcement_learning.agents.rainbow_dqn_agent import RainbowDQNAgent
 import pytesseract
 
 from serpent.logger import Loggers
@@ -68,19 +68,19 @@ class SerpentCODGameAgent(GameAgent):
             ) ,
             input_shape=(100 , 100) ,
             ppo_kwargs=dict(
-                is_recurrent=False ,
-                memory_capacity=1024,
+                memory_capacity=4096,
                 discount=0.9,
-                epochs=12,
-                batch_size=256,
-                learning_rate=0.0000005,
-                gae=False,
+                epochs=15,
+                batch_size=64,
+                entropy_regularization_coefficient=0 ,
+                learning_rate=0.0000005 ,
+                gae=True,
                 epsilon=0.2 ,
-                save_steps=1024,
-            ) ,
+                save_steps=8192
+            ),
             logger=Loggers.COMET_ML ,
             logger_kwargs=dict(
-                api_key="comet_ml_api_key" ,
+                api_key="" ,
                 project_name="serpent-ai-cod" ,
                 reward_func=self.reward
             )
@@ -104,7 +104,7 @@ class SerpentCODGameAgent(GameAgent):
         )
         self.agent.observe(reward=reward, terminal=terminal)
         if not terminal:
-            game_frame_buffer = FrameGrabber.get_frames([0, 0, 0, 0], frame_type="PIPELINE")
+            game_frame_buffer = FrameGrabber.get_frames([0], frame_type="PIPELINE")
             agent_actions = self.agent.generate_actions(game_frame_buffer)
             str_agent_actions = str(agent_actions)
             if "MOVE1" in str_agent_actions:
@@ -145,19 +145,17 @@ class SerpentCODGameAgent(GameAgent):
         img = img[ 60:60 + 52 , 57:57 + 211, :]
         over_check=self.game.api.is_dead(img, self.reference_killcam)
         if over_check:
-            reward = -2.0
+            reward = -10.0
             over=True
             return reward , over
         else:
             over=False
+            reward = 0.0001
             if game_state[ "xp" ] > 0:
-                reward = game_state[ "xp" ] * .015
-                return reward , over
-            elif game_state["health_levels"] > 0:
-                reward = -(game_state["health_levels"] * .1)
-                return reward , over
-            else:
-                return 0, over
+                reward += game_state[ "xp" ] * .5
+            if game_state["health_levels"] > 0:
+                reward += -(game_state["health_levels"] * .235)
+            return reward , over
 
     def after_agent_observe(self):
         self.environment.episode_step()
