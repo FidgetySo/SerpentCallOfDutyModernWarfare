@@ -4,8 +4,8 @@ redis:
     db: 0
 
 analytics:
-    broadcast: true
-    debug: true
+    broadcast: false
+    debug: false
     topic: ANALYTICS_TOPIC
     persisted_events:
         - TOTAL_REWARD

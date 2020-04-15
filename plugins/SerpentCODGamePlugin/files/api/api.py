@@ -31,6 +31,20 @@ import os
 
 from PIL import Image
 
+YOLO_DIRECTORY = "models"
+CONFIDENCE = 0.36
+THRESHOLD = 0.22
+labelsPath = os.path.sep.join([YOLO_DIRECTORY, "coco-dataset.labels"])
+LABELS = open(labelsPath).read().strip().split("\n")
+np.random.seed(42)
+COLORS = np.random.randint(0, 255, size=(len(LABELS), 3), dtype="uint8")
+weightsPath = os.path.sep.join([YOLO_DIRECTORY, "yolov3-tiny.weights"])
+configPath = os.path.sep.join([YOLO_DIRECTORY, "yolov3-tiny.cfg"])
+
+net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
+net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
+ln = net.getLayerNames()
+ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 def set_pos(x, y):
     pywinauto.mouse.move(coords=(x , y))
@@ -38,7 +52,7 @@ def set_pos(x, y):
 class CODAPI(GameAPI):
     def __init__(self, game=None):
         super().__init__(game=game)
-
+        self.W, self.H = None, None
         self.game_inputs = {
             "MOVEMENT": {
                 "WALK LEFT": [
@@ -113,3 +127,61 @@ class CODAPI(GameAPI):
         )
 
         return ssim_score > 0.6
+    def human(self, image):
+        frame=np.array(image)
+        frame=frame[ 440:440 + 200 , 860:860 + 200 , : ]
+        frame=cv2.cvtColor(frame , cv2.COLOR_RGBA2BGR)
+
+        if self.W is None or self.H is None:
+            (H , W)=frame.shape[ : 2 ]
+
+        frame=cv2.UMat(frame)
+        blob=cv2.dnn.blobFromImage(frame , 1 / 260 , (150 , 150) ,
+                                   swapRB=False , crop=False)
+        net.setInput(blob)
+        layerOutputs=net.forward(ln)
+        boxes=[ ]
+        confidences=[ ]
+        classIDs=[ ]
+        for output in layerOutputs:
+            for detection in output:
+                scores=detection[ 5: ]
+                classID=0
+                confidence=scores[ classID ]
+                if confidence > CONFIDENCE:
+                    box=detection[ 0: 4 ] * np.array([ W , H , W , H ])
+                    (centerX , centerY , width , height)=box.astype("int")
+                    x=int(centerX - (width / 2))
+                    y=int(centerY - (height / 2))
+                    boxes.append([ x , y , int(width) , int(height) ])
+                    confidences.append(float(confidence))
+                    classIDs.append(classID)
+
+        idxs=cv2.dnn.NMSBoxes(boxes , confidences , CONFIDENCE , THRESHOLD)
+        if len(idxs) > 0:
+            bestMatch=confidences[ np.argmax(confidences) ]
+
+            # loop over the indexes we are keeping
+            for i in idxs.flatten():
+                # extract the bounding box coordinates
+                (x , y)=(boxes[ i ][ 0 ] , boxes[ i ][ 1 ])
+                (w , h)=(boxes[ i ][ 2 ] , boxes[ i ][ 3 ])
+
+                # draw target dot on the frame
+                cv2.circle(frame , (int(x + w / 2) , int(y + h / 5)) , 5 , (0 , 0 , 255) , -1)
+
+                # draw a bounding box rectangle and label on the frame
+                # color = [int(c) for c in COLORS[classIDs[i]]]
+                cv2.rectangle(frame , (x , y) ,
+                              (x + w , y + h) , (0 , 0 , 255) , 2)
+
+                text="TARGET {}%".format(int(confidences[ i ] * 100))
+                cv2.putText(frame , text , (x , y - 5) ,
+                            cv2.FONT_HERSHEY_SIMPLEX , 0.5 , (0 , 255 , 0) , 2)
+
+                if bestMatch == confidences[ i ]:
+                    return True
+                else:
+                    return False
+        else:
+            return False
