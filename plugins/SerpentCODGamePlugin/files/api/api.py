@@ -24,7 +24,6 @@ import random
 from mss import mss
 import cv2
 
-import pywinauto
 import pyautogui
 
 import os
@@ -46,8 +45,58 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 ln = net.getLayerNames()
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
-def set_pos(x, y):
-    pywinauto.mouse.move(coords=(x , y))
+import ctypes
+import pynput
+from pynput.keyboard import Key , Listener , KeyCode
+from pynput import keyboard
+
+SendInput=ctypes.windll.user32.SendInput
+PUL=ctypes.POINTER(ctypes.c_ulong)
+
+
+class KeyBdInput(ctypes.Structure):
+    _fields_=[ ("wVk" , ctypes.c_ushort) ,
+               ("wScan" , ctypes.c_ushort) ,
+               ("dwFlags" , ctypes.c_ulong) ,
+               ("time" , ctypes.c_ulong) ,
+               ("dwExtraInfo" , PUL) ]
+
+
+class HardwareInput(ctypes.Structure):
+    _fields_=[ ("uMsg" , ctypes.c_ulong) ,
+               ("wParamL" , ctypes.c_short) ,
+               ("wParamH" , ctypes.c_ushort) ]
+
+
+class MouseInput(ctypes.Structure):
+    _fields_=[ ("dx" , ctypes.c_long) ,
+               ("dy" , ctypes.c_long) ,
+               ("mouseData" , ctypes.c_ulong) ,
+               ("dwFlags" , ctypes.c_ulong) ,
+               ("time" , ctypes.c_ulong) ,
+               ("dwExtraInfo" , PUL) ]
+
+
+class Input_I(ctypes.Union):
+    _fields_=[ ("ki" , KeyBdInput) ,
+               ("mi" , MouseInput) ,
+               ("hi" , HardwareInput) ]
+
+
+class Input(ctypes.Structure):
+    _fields_=[ ("type" , ctypes.c_ulong) ,
+               ("ii" , Input_I) ]
+
+
+def set_pos(x , y):
+    x=1 + int(x * 65536. / 1920.)
+    y=1 + int(y * 65536. / 1080.)
+    extra=ctypes.c_ulong(0)
+    ii_=pynput._util.win32.INPUT_union()
+    ii_.mi=pynput._util.win32.MOUSEINPUT(x , y , 0 , (0x0001 | 0x8000) , 0 ,
+                                         ctypes.cast(ctypes.pointer(extra) , ctypes.c_void_p))
+    command=pynput._util.win32.INPUT(ctypes.c_ulong(0) , ii_)
+    SendInput(1 , ctypes.pointer(command) , ctypes.sizeof(command))
 
 class CODAPI(GameAPI):
     def __init__(self, game=None):
@@ -127,9 +176,12 @@ class CODAPI(GameAPI):
         )
 
         return ssim_score > 0.6
-    def human(self, image):
+    def human(self, image, helper=False):
         frame=np.array(image)
-        frame=frame[ 440:440 + 200 , 860:860 + 200 , : ]
+        if helper:
+            frame=frame[ 340:340 + 400 , 760:760 + 400 , : ]
+        else:
+            frame=frame[ 440:440 + 200 , 860:860 + 200 , : ]
         frame=cv2.cvtColor(frame , cv2.COLOR_RGBA2BGR)
 
         if self.W is None or self.H is None:
@@ -180,8 +232,17 @@ class CODAPI(GameAPI):
                             cv2.FONT_HERSHEY_SIMPLEX , 0.5 , (0 , 255 , 0) , 2)
 
                 if bestMatch == confidences[ i ]:
-                    return True
+                    if helper:
+                        mouseX=int(760+ (x + w / 2))
+                        mouseY=int(340+ (y + h / 5))
+                        x_pos , y_pos=pyautogui.position()
+                        mouseX= mouseX - x_pos
+                        mouseY= mouseY - y_pos
+                        print(f"X: {mouseX} Y: {mouseY}")
+                        return mouseX, mouseY, False
                 else:
-                    return False
+                    if helper:
+                        return 20, 20, False
         else:
-            return False
+            if helper:
+                return 20, 20, False
