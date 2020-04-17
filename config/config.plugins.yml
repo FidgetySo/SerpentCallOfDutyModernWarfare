@@ -6,3 +6,5 @@ SerpentFPSGameAgentPlugin:
   frame_handler: PLAY
 SerpentTestingGamePlugin:
   fps: 2
+SerpenttwoGameAgentPlugin:
+  frame_handler: PLAY

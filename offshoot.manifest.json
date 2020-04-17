@@ -29,36 +29,6 @@
             "config": {
                 "fps": 100
             }
-        },
-        "SerpentFPSGameAgentPlugin": {
-            "name": "SerpentFPSGameAgentPlugin",
-            "version": "0.1.0",
-            "files": [
-                {
-                    "path": "serpent_FPS_game_agent.py",
-                    "pluggable": "GameAgent"
-                }
-            ],
-            "plugins": [],
-            "libraries": [],
-            "config": {
-                "frame_handler": "PLAY"
-            }
-        },
-        "SerpentTestingGamePlugin": {
-            "name": "SerpentTestingGamePlugin",
-            "version": "0.1.0",
-            "files": [
-                {
-                    "path": "serpent_Testing_game.py",
-                    "pluggable": "Game"
-                }
-            ],
-            "plugins": [],
-            "libraries": [],
-            "config": {
-                "fps": 2
-            }
         }
     }
 }

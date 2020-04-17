@@ -42,6 +42,8 @@ configPath = os.path.sep.join([YOLO_DIRECTORY, "yolov3-tiny.cfg"])
 
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
+cv2.ocl.setUseOpenCL(True)
+cv2.ocl.useOpenCL()
 ln = net.getLayerNames()
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
@@ -124,23 +126,31 @@ class CODAPI(GameAPI):
             },
             "CURSOR": {
                 "MOVE1": [
+                    MouseEvent(MouseEvents.MOVE , x=885, y=540)
                 ],
                 "MOVE2": [
+                    MouseEvent(MouseEvents.MOVE , x=960, y=542)
                 ] ,
                 "MOVE3": [
+                    MouseEvent(MouseEvents.MOVE , x=1035, y=540)
                 ],
                 "MOVE4": [
+                    MouseEvent(MouseEvents.MOVE , x=960, y=538)
                 ],
                 "IDLE_MOUSE": []
             },
             "FIRE": {
                 "CLICK DOWN LEFT": [
+                    MouseEvent(MouseEvents.CLICK_DOWN, button=MouseButton.LEFT)
                 ],
                 "CLICK DOWN RIGHT": [
+                    MouseEvent(MouseEvents.CLICK_DOWN , button=MouseButton.RIGHT)
                 ],
                 "CLICK UP LEFT": [
+                    MouseEvent(MouseEvents.CLICK_UP , button=MouseButton.LEFT)
                 ] ,
                 "CLICK UP RIGHT": [
+                    MouseEvent(MouseEvents.CLICK_UP , button=MouseButton.RIGHT)
                 ] ,
                 "IDLE_FIRE": []
             }
@@ -148,7 +158,6 @@ class CODAPI(GameAPI):
     def num_there(self, s):
         return any(i.isdigit() for i in s)
     def get_xp(self, image_xp):
-        image_xp = np.array(image_xp)
         image=image_xp[ 407:407 + 215 , 980:980 + 323 , : ]
         image=cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
         yellow_min=np.array([255,194,21] , np.uint8)
@@ -159,7 +168,6 @@ class CODAPI(GameAPI):
         print('The number of yellow  pixels are: ' + str(no_yellow))
         return no_yellow
     def get_health(self, image):
-        image = np.array(image)
         image=cv2.cvtColor(image , cv2.COLOR_BGRA2RGB)
         red_min=np.array([ 117, 54, 34] , np.uint8)
         red_max=np.array([ 117, 54, 34 ] , np.uint8)
@@ -174,8 +182,8 @@ class CODAPI(GameAPI):
             ref ,
             multichannel=True
         )
-
         return ssim_score > 0.6
+
     def human(self, image, helper=False):
         frame=np.array(image)
         if helper:
