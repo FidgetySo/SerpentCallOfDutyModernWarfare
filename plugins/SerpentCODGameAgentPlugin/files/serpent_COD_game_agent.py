@@ -114,7 +114,7 @@ class SerpentCODGameAgent(GameAgent):
             input_shape=(100, 100),
             ppo_kwargs=dict(
                 is_recurrent=False,
-                memory_capacity=1024,
+                memory_capacity=2048,
                 discount=0.99,
                 epochs=4,
                 batch_size=32,
@@ -136,8 +136,8 @@ class SerpentCODGameAgent(GameAgent):
                 after_update=self.after_agent_update),
             input_shape=(100, 100),
             ppo_kwargs=dict(
-                is_recurrent=False,
-                memory_capacity=1024,
+                is_recurrent=True,
+                memory_capacity=2048,
                 discount=0.99,
                 epochs=4,
                 batch_size=32,
@@ -147,7 +147,7 @@ class SerpentCODGameAgent(GameAgent):
             logger=Loggers.COMET_ML,
             logger_kwargs=dict(
                 api_key=config["comet_ml_api_key"],
-                project_name="serpent-ai-cod",
+                project_name="serpent-ai-cod-combat",
                 reward_func=self.reward))
         # Define episode
         self.environment_movement.new_episode(maximum_steps=1024)
@@ -171,7 +171,6 @@ class SerpentCODGameAgent(GameAgent):
         worker = Thread(target=self.start_mouse, args=())
         worker.setDaemon(True)
         worker.start()
-
     def handle_play(self, game_frame, game_frame_pipeline):
         with mss() as sct:
             monitor_sct_number = sct.monitors[1]
@@ -289,3 +288,18 @@ class SerpentCODGameAgent(GameAgent):
 
     def after_agent_update(self):
         pass
+    def start_mouse(self):
+        while True:
+            if self.mouse1:
+                set_pos(963,540)
+            elif self.mouse2:
+                set_pos(960,543)
+            elif self.mouse3:
+                set_pos(957,540)
+            elif self.mouse4:
+                set_pos(960,537)
+            else:
+                self.mouse1=False
+                self.mouse2=False
+                self.mouse3=False
+                self.mouse4=False

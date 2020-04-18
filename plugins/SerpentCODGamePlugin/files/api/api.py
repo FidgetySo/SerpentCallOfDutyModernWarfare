@@ -126,16 +126,12 @@ class CODAPI(GameAPI):
             },
             "CURSOR": {
                 "MOVE1": [
-                    MouseEvent(MouseEvents.MOVE , x=885, y=540)
                 ],
                 "MOVE2": [
-                    MouseEvent(MouseEvents.MOVE , x=960, y=542)
                 ] ,
                 "MOVE3": [
-                    MouseEvent(MouseEvents.MOVE , x=1035, y=540)
                 ],
                 "MOVE4": [
-                    MouseEvent(MouseEvents.MOVE , x=960, y=538)
                 ],
                 "IDLE_MOUSE": []
             },
