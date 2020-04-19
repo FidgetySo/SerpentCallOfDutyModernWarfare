@@ -1,3 +1,5 @@
+from threading import Thread
+
 from serpent.game_agent import GameAgent
 
 from serpent.enums import InputControlTypes
@@ -114,10 +116,12 @@ class SerpentCODGameAgent(GameAgent):
             input_shape=(100, 100),
             ppo_kwargs=dict(
                 is_recurrent=False,
-                memory_capacity=2048,
+                memory_capacity=1024,
                 discount=0.99,
-                epochs=4,
+                epochs=100,
                 batch_size=32,
+                learning_rate=0.001,
+                adam_epsilon=0.01,
                 entropy_regularization_coefficient=0.1,
                 save_steps=1024,
             ),
@@ -137,10 +141,12 @@ class SerpentCODGameAgent(GameAgent):
             input_shape=(100, 100),
             ppo_kwargs=dict(
                 is_recurrent=True,
-                memory_capacity=2048,
+                memory_capacity=1024,
                 discount=0.99,
-                epochs=4,
-                batch_size=32,
+                epochs=100,
+                learning_rate=0.001,
+                adam_epsilon=0.01,
+                batch_size=1,
                 entropy_regularization_coefficient=0.1,
                 save_steps=1024,
             ),
@@ -199,6 +205,31 @@ class SerpentCODGameAgent(GameAgent):
             str_agent_actions_movement = str(agent_actions_movement)
             str_agent_actions_combat = str(agent_actions_combat)
             # Check if agent is moving
+            if "MOVE1" in str_agent_actions_combat:
+                self.mouse1= True
+                self.mouse2 = False
+                self.mouse3 = False
+                self.mouse4  =False
+            elif "MOVE2" in str_agent_actions_combat:
+                self.mouse2= True
+                self.mouse1 = False
+                self.mouse3 = False
+                self.mouse4  =False
+            elif "MOVE3" in str_agent_actions_combat:
+                self.mouse3= True
+                self.mouse1 = False
+                self.mouse2 = False
+                self.mouse4  =False
+            elif "MOVE4" in str_agent_actions_combat:
+                self.mouse4= True
+                self.mouse1 = False
+                self.mouse2 = False
+                self.mouse3  =False
+            else:
+                self.mouse1=False
+                self.mouse2=False
+                self.mouse3=False
+                self.mouse4=False
             if "IDLE_FIRE" in str_agent_actions_combat:
                 self.shooting = False
             elif "CLICK DOWN LEFT" in str_agent_actions_combat:

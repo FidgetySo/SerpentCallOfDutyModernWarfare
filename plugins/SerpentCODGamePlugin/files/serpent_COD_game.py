@@ -31,7 +31,7 @@ class SerpentCODGame(Game , metaclass=Singleton):
             "GAME": CODEnvironment
         }
 
-        self.frame_transformation_pipeline_string="RESIZE:150x150|GRAYSCALE|FLOAT"
+        self.frame_transformation_pipeline_string="RESIZE:100x100|GRAYSCALE|FLOAT"
 
     @property
     def screen_regions(self):
