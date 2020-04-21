@@ -1,3 +1,5 @@
+from serpent.logger import Loggers
+
 from threading import Thread
 
 from serpent.game_agent import GameAgent
@@ -5,8 +7,6 @@ from serpent.game_agent import GameAgent
 from serpent.enums import InputControlTypes
 
 from serpent.machine_learning.reinforcement_learning.agents.ppo_agent import PPOAgent
-
-from serpent.logger import Loggers
 
 from serpent.frame_grabber import FrameGrabber
 from serpent.game_frame import GameFrame
@@ -116,13 +116,13 @@ class SerpentCODGameAgent(GameAgent):
             input_shape=(100, 100),
             ppo_kwargs=dict(
                 is_recurrent=False,
-                memory_capacity=1024,
+                memory_capacity=256,
                 discount=0.99,
-                epochs=100,
+                epochs=6,
                 batch_size=32,
-                learning_rate=0.001,
-                adam_epsilon=0.01,
-                entropy_regularization_coefficient=0.1,
+                learning_rate=0.0002,
+                adam_epsilon=0.2,
+                entropy_regularization_coefficient=0.01,
                 save_steps=1024,
             ),
             logger=Loggers.COMET_ML,
@@ -141,13 +141,13 @@ class SerpentCODGameAgent(GameAgent):
             input_shape=(100, 100),
             ppo_kwargs=dict(
                 is_recurrent=True,
-                memory_capacity=1024,
+                memory_capacity=256,
                 discount=0.99,
-                epochs=100,
-                learning_rate=0.001,
-                adam_epsilon=0.01,
+                epochs=6,
+                learning_rate=0.0002,
+                adam_epsilon=0.2,
                 batch_size=1,
-                entropy_regularization_coefficient=0.1,
+                entropy_regularization_coefficient=0.01,
                 save_steps=1024,
             ),
             logger=Loggers.COMET_ML,
@@ -164,6 +164,8 @@ class SerpentCODGameAgent(GameAgent):
         # Preload Reference sprite for detecting is dead
         self.reference_killcam = np.squeeze(
             self.game.sprites["SPRITE_KILLCAM"].image_data)[..., :3]
+        self.reference_killcam = cv2.cvtColor(self.reference_killcam,
+                                              cv2.COLOR_BGRA2GRAY)
         # Pre-define is agent moving
         self.moving = False
 
@@ -177,6 +179,7 @@ class SerpentCODGameAgent(GameAgent):
         worker = Thread(target=self.start_mouse, args=())
         worker.setDaemon(True)
         worker.start()
+
     def handle_play(self, game_frame, game_frame_pipeline):
         with mss() as sct:
             monitor_sct_number = sct.monitors[1]
@@ -197,7 +200,7 @@ class SerpentCODGameAgent(GameAgent):
         if not terminal:
             # Generate picked action by agent
             game_frame_buffer = FrameGrabber.get_frames(
-                [0, 1, 2, 3], frame_type="PIPELINE")
+                [0], frame_type="PIPELINE")
             agent_actions_movement = self.agent_movement.generate_actions(
                 game_frame_buffer)
             agent_actions_combat = self.agent_combat.generate_actions(
@@ -206,30 +209,30 @@ class SerpentCODGameAgent(GameAgent):
             str_agent_actions_combat = str(agent_actions_combat)
             # Check if agent is moving
             if "MOVE1" in str_agent_actions_combat:
-                self.mouse1= True
+                self.mouse1 = True
                 self.mouse2 = False
                 self.mouse3 = False
-                self.mouse4  =False
+                self.mouse4 = False
             elif "MOVE2" in str_agent_actions_combat:
-                self.mouse2= True
+                self.mouse2 = True
                 self.mouse1 = False
                 self.mouse3 = False
-                self.mouse4  =False
+                self.mouse4 = False
             elif "MOVE3" in str_agent_actions_combat:
-                self.mouse3= True
+                self.mouse3 = True
                 self.mouse1 = False
                 self.mouse2 = False
-                self.mouse4  =False
+                self.mouse4 = False
             elif "MOVE4" in str_agent_actions_combat:
-                self.mouse4= True
+                self.mouse4 = True
                 self.mouse1 = False
                 self.mouse2 = False
-                self.mouse3  =False
+                self.mouse3 = False
             else:
-                self.mouse1=False
-                self.mouse2=False
-                self.mouse3=False
-                self.mouse4=False
+                self.mouse1 = False
+                self.mouse2 = False
+                self.mouse3 = False
+                self.mouse4 = False
             if "IDLE_FIRE" in str_agent_actions_combat:
                 self.shooting = False
             elif "CLICK DOWN LEFT" in str_agent_actions_combat:
@@ -291,22 +294,27 @@ class SerpentCODGameAgent(GameAgent):
             reward_combat = 0.008
             # Get postive feedback for getting xp/points
             if game_state["xp"] > 0:
-                reward_combat += game_state["xp"] * .008
-                reward_movement += game_state["xp"] * .008
+                reward_combat += 1.5
+                reward_movement += 1.5
             # Count red pixels of health on screen
             if game_state["health_levels"] > 0:
-                reward_combat -= game_state["health_levels"] * 0.5
-                reward_movement -= game_state["health_levels"] * 0.05
+                reward_combat -= 0.85
+                reward_movement -= 0.85
             # Give minor postive feedback to movememnt agent
             if moving:
                 reward_movement += 0.00009
             else:
                 reward_movement -= 0.03
             # Give postive feedback if looking at a enemy player
-            if (enemyX < 15 and enemyX > -15) or (enemyY < 15 and enemyY > -15):
-                reward_combat += .005
+            if (enemyX < 25
+                    and enemyX > -50) or (enemyY < 25 and enemyY > -50) or (
+                        (enemyX < 25 and enemyX > -50) and
+                        (enemyY < 25 and enemyY > -50)):
+                reward_combat += .125
             if self.there_human and self.shooting:
-                reward_combat += .2
+                reward_combat += .175
+            if not self.there_human and self.shooting:
+                reward_combat -= .125
             return reward_movement, reward_combat, over
 
     def after_agent_observe(self):
@@ -319,18 +327,19 @@ class SerpentCODGameAgent(GameAgent):
 
     def after_agent_update(self):
         pass
+
     def start_mouse(self):
         while True:
             if self.mouse1:
-                set_pos(963,540)
+                set_pos(965, 540)
             elif self.mouse2:
-                set_pos(960,543)
+                set_pos(960, 545)
             elif self.mouse3:
-                set_pos(957,540)
+                set_pos(955, 540)
             elif self.mouse4:
-                set_pos(960,537)
+                set_pos(960, 535)
             else:
-                self.mouse1=False
-                self.mouse2=False
-                self.mouse3=False
-                self.mouse4=False
+                self.mouse1 = False
+                self.mouse2 = False
+                self.mouse3 = False
+                self.mouse4 = False

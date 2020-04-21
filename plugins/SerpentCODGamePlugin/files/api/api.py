@@ -41,9 +41,6 @@ weightsPath = os.path.sep.join([YOLO_DIRECTORY, "yolov3-tiny.weights"])
 configPath = os.path.sep.join([YOLO_DIRECTORY, "yolov3-tiny.cfg"])
 
 net = cv2.dnn.readNetFromDarknet(configPath, weightsPath)
-net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
-cv2.ocl.setUseOpenCL(True)
-cv2.ocl.useOpenCL()
 ln = net.getLayerNames()
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
@@ -173,7 +170,8 @@ class CODAPI(GameAPI):
         print('The number of red pixels are: ' + str(no_red))
         return no_red
     def is_dead(self , game_frame, ref):
-        ssim_score=skimage.metrics.structural_similarity(
+        game_frame = cv2.cvtColor(game_frame, cv2.COLOR_BGRA2GRAY)
+        ssim_score=skimage.measure.compare_ssim(
             game_frame ,
             ref ,
             multichannel=True
